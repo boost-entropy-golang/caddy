@@ -392,6 +392,9 @@ func (h *Handler) Provision(ctx caddy.Context) error {
 		}
 	}
 
+	upstreamHealthyUpdater := newMetricsUpstreamsHealthyUpdater(h)
+	upstreamHealthyUpdater.Init()
+
 	return nil
 }
 
@@ -1357,7 +1360,7 @@ var bufPool = sync.Pool{
 }
 
 // handleResponseContext carries some contextual information about the
-// the current proxy handling.
+// current proxy handling.
 type handleResponseContext struct {
 	// handler is the active proxy handler instance, so that
 	// routes like copy_response may inherit some config
