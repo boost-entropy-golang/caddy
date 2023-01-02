@@ -1,9 +1,9 @@
 <p align="center">
 	<a href="https://caddyserver.com">
 		<picture>
-			<source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/55066419/206944919-98f9fc47-cc3b-49ef-a498-0ff74c625c0c.png">
-			<source media="(prefers-color-scheme: light)" srcset="https://user-images.githubusercontent.com/1128849/36338535-05fb646a-136f-11e8-987b-e6901e717d5a.png">
-			<img src="https://user-images.githubusercontent.com/1128849/36338535-05fb646a-136f-11e8-987b-e6901e717d5a.png" alt="Caddy" width="450">
+			<source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/1128849/210187358-e2c39003-9a5e-4dd5-a783-6deb6483ee72.svg">
+			<source media="(prefers-color-scheme: light)" srcset="https://user-images.githubusercontent.com/1128849/210187356-dfb7f1c5-ac2e-43aa-bb23-fc014280ae1f.svg">
+			<img src="https://user-images.githubusercontent.com/1128849/210187356-dfb7f1c5-ac2e-43aa-bb23-fc014280ae1f.svg" alt="Caddy" width="550">
 		</picture>
 	</a>
 	<br>
@@ -13,7 +13,7 @@
 <h3 align="center">Every site on HTTPS</h3>
 <p align="center">Caddy is an extensible server platform that uses TLS by default.</p>
 <p align="center">
-	<a href="https://github.com/caddyserver/caddy/actions?query=workflow%3ACross-Platform"><img src="https://github.com/caddyserver/caddy/workflows/Cross-Platform/badge.svg"></a>
+	<a href="https://github.com/caddyserver/caddy/actions/workflows/ci.yml"><img src="https://github.com/caddyserver/caddy/actions/workflows/ci.yml/badge.svg"></a>
 	<a href="https://pkg.go.dev/github.com/caddyserver/caddy/v2"><img src="https://img.shields.io/badge/godoc-reference-%23007d9c.svg"></a>
 	<br>
 	<a href="https://twitter.com/caddyserver" title="@caddyserver on Twitter"><img src="https://img.shields.io/badge/twitter-@caddyserver-55acee.svg" alt="@caddyserver on Twitter"></a>
