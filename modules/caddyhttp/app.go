@@ -20,9 +20,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/netip"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -224,22 +222,13 @@ func (app *App) Provision(ctx caddy.Context) error {
 			srv.StrictSNIHost = &trueBool
 		}
 
-		// parse trusted proxy CIDRs ahead of time
-		for _, str := range srv.TrustedProxies {
-			if strings.Contains(str, "/") {
-				ipNet, err := netip.ParsePrefix(str)
-				if err != nil {
-					return fmt.Errorf("parsing CIDR expression: '%s': %v", str, err)
-				}
-				srv.trustedProxies = append(srv.trustedProxies, ipNet)
-			} else {
-				ipAddr, err := netip.ParseAddr(str)
-				if err != nil {
-					return fmt.Errorf("invalid IP address: '%s': %v", str, err)
-				}
-				ipNew := netip.PrefixFrom(ipAddr, ipAddr.BitLen())
-				srv.trustedProxies = append(srv.trustedProxies, ipNew)
+		// set up the trusted proxies source
+		for srv.TrustedProxiesRaw != nil {
+			val, err := ctx.LoadModule(srv, "TrustedProxiesRaw")
+			if err != nil {
+				return fmt.Errorf("loading trusted proxies modules: %v", err)
 			}
+			srv.trustedProxies = val.(IPRangeSource)
 		}
 
 		// process each listener address
@@ -574,7 +563,7 @@ func (app *App) Stop() error {
 
 		// TODO: we have to manually close our listeners because quic-go won't
 		// close listeners it didn't create along with the server itself...
-		// see https://github.com/lucas-clemente/quic-go/issues/3560
+		// see https://github.com/quic-go/quic-go/issues/3560
 		for _, el := range server.h3listeners {
 			if err := el.Close(); err != nil {
 				app.logger.Error("HTTP/3 listener close",
@@ -583,7 +572,7 @@ func (app *App) Stop() error {
 			}
 		}
 
-		// TODO: CloseGracefully, once implemented upstream (see https://github.com/lucas-clemente/quic-go/issues/2103)
+		// TODO: CloseGracefully, once implemented upstream (see https://github.com/quic-go/quic-go/issues/2103)
 		if err := server.h3server.Close(); err != nil {
 			app.logger.Error("HTTP/3 server shutdown",
 				zap.Error(err),
