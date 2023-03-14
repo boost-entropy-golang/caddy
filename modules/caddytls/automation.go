@@ -165,36 +165,6 @@ func (ap *AutomationPolicy) Provision(tlsApp *TLS) error {
 		ap.storage = cmStorage
 	}
 
-	// on-demand TLS
-	var ond *certmagic.OnDemandConfig
-	if ap.OnDemand {
-		ond = &certmagic.OnDemandConfig{
-			DecisionFunc: func(name string) error {
-				// if an "ask" endpoint was defined, consult it first
-				if tlsApp.Automation != nil &&
-					tlsApp.Automation.OnDemand != nil &&
-					tlsApp.Automation.OnDemand.Ask != "" {
-					if err := onDemandAskRequest(tlsApp.logger, tlsApp.Automation.OnDemand.Ask, name); err != nil {
-						// distinguish true errors from denials, because it's important to log actual errors
-						if !errors.Is(err, errAskDenied) {
-							tlsApp.logger.Error("request to 'ask' endpoint failed",
-								zap.Error(err),
-								zap.String("endpoint", tlsApp.Automation.OnDemand.Ask),
-								zap.String("domain", name))
-						}
-						return err
-					}
-				}
-				// check the rate limiter last because
-				// doing so makes a reservation
-				if !onDemandRateLimiter.Allow() {
-					return fmt.Errorf("on-demand rate limit exceeded")
-				}
-				return nil
-			},
-		}
-	}
-
 	// we don't store loaded modules directly in the certmagic config since
 	// policy provisioning may happen more than once (during auto-HTTPS) and
 	// loading a module clears its config bytes; thus, load the module and
@@ -251,6 +221,40 @@ func (ap *AutomationPolicy) Provision(tlsApp *TLS) error {
 		storage = tlsApp.ctx.Storage()
 	}
 
+	// on-demand TLS
+	var ond *certmagic.OnDemandConfig
+	if ap.OnDemand {
+		// ask endpoint is now required after a number of negligence cases causing abuse
+		if !ap.onlyInternalIssuer() && (tlsApp.Automation == nil || tlsApp.Automation.OnDemand == nil || tlsApp.Automation.OnDemand.Ask == "") {
+			return fmt.Errorf("on-demand TLS cannot be enabled without an 'ask' endpoint to prevent abuse; please refer to documentation for details")
+		}
+		ond = &certmagic.OnDemandConfig{
+			DecisionFunc: func(name string) error {
+				if err := onDemandAskRequest(tlsApp.logger, tlsApp.Automation.OnDemand.Ask, name); err != nil {
+					// distinguish true errors from denials, because it's important to elevate actual errors
+					if errors.Is(err, errAskDenied) {
+						tlsApp.logger.Debug("certificate issuance denied",
+							zap.String("ask_endpoint", tlsApp.Automation.OnDemand.Ask),
+							zap.String("domain", name),
+							zap.Error(err))
+					} else {
+						tlsApp.logger.Error("request to 'ask' endpoint failed",
+							zap.String("ask_endpoint", tlsApp.Automation.OnDemand.Ask),
+							zap.String("domain", name),
+							zap.Error(err))
+					}
+					return err
+				}
+				// check the rate limiter last because
+				// doing so makes a reservation
+				if !onDemandRateLimiter.Allow() {
+					return fmt.Errorf("on-demand rate limit exceeded")
+				}
+				return nil
+			},
+		}
+	}
+
 	template := certmagic.Config{
 		MustStaple:         ap.MustStaple,
 		RenewalWindowRatio: ap.RenewalWindowRatio,
@@ -280,6 +284,14 @@ func (ap *AutomationPolicy) Provision(tlsApp *TLS) error {
 	}
 
 	return nil
+}
+
+func (ap *AutomationPolicy) onlyInternalIssuer() bool {
+	if len(ap.Issuers) != 1 {
+		return false
+	}
+	_, ok := ap.Issuers[0].(*InternalIssuer)
+	return ok
 }
 
 // DefaultIssuers returns empty Issuers (not provisioned) to be used as defaults.
@@ -404,7 +416,7 @@ type OnDemandConfig struct {
 	// issuance of certificates from handshakes.
 	RateLimit *RateLimit `json:"rate_limit,omitempty"`
 
-	// If Caddy needs to obtain or renew a certificate
+	// REQUIRED. If Caddy needs to obtain/renew a certificate
 	// during a TLS handshake, it will perform a quick
 	// HTTP request to this URL to check if it should be
 	// allowed to try to get a certificate for the name
