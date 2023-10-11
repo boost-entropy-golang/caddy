@@ -90,6 +90,7 @@ func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error)
 //	    max_buffer_size    <size>
 //	    stream_timeout     <duration>
 //	    stream_close_delay <duration>
+//	    trace_logs
 //
 //	    # request manipulation
 //	    trusted_proxies [private_ranges] <ranges...>
@@ -372,7 +373,7 @@ func (h *Handler) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				if len(values) == 0 {
 					values = append(values, "")
 				}
-				healthHeaders[key] = values
+				healthHeaders[key] = append(healthHeaders[key], values...)
 			}
 			if h.HealthChecks == nil {
 				h.HealthChecks = new(HealthChecks)
@@ -781,6 +782,12 @@ func (h *Handler) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				h.HandleResponse,
 				responseHandler,
 			)
+
+		case "verbose_logs":
+			if h.VerboseLogs {
+				return d.Err("verbose_logs already specified")
+			}
+			h.VerboseLogs = true
 
 		default:
 			return d.Errf("unrecognized subdirective %s", d.Val())
