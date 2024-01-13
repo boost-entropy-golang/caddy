@@ -40,6 +40,7 @@ import (
 func init() {
 	RegisterDirective("bind", parseBind)
 	RegisterDirective("tls", parseTLS)
+	RegisterHandlerDirective("fs", parseFilesystem)
 	RegisterHandlerDirective("root", parseRoot)
 	RegisterHandlerDirective("vars", parseVars)
 	RegisterHandlerDirective("redir", parseRedir)
@@ -219,6 +220,24 @@ func parseTLS(h Helper) ([]ConfigValue, error) {
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					subdir := h.Val()
 					switch subdir {
+					case "verifier":
+						if !h.NextArg() {
+							return nil, h.ArgErr()
+						}
+
+						vType := h.Val()
+						modID := "tls.client_auth." + vType
+						unm, err := caddyfile.UnmarshalModule(h.Dispenser, modID)
+						if err != nil {
+							return nil, err
+						}
+
+						_, ok := unm.(caddytls.ClientCertificateVerifier)
+						if !ok {
+							return nil, h.Dispenser.Errf("module %s is not a caddytls.ClientCertificatVerifier", modID)
+						}
+
+						cp.ClientAuthentication.VerifiersRaw = append(cp.ClientAuthentication.VerifiersRaw, caddyconfig.JSONModuleObject(unm, "verifier", vType, h.warnings))
 					case "mode":
 						if !h.Args(&cp.ClientAuthentication.Mode) {
 							return nil, h.ArgErr()
@@ -640,6 +659,23 @@ func parseRoot(h Helper) (caddyhttp.MiddlewareHandler, error) {
 	return caddyhttp.VarsMiddleware{"root": root}, nil
 }
 
+// parseFilesystem parses the fs directive. Syntax:
+//
+//	fs <filesystem>
+func parseFilesystem(h Helper) (caddyhttp.MiddlewareHandler, error) {
+	var name string
+	for h.Next() {
+		if !h.NextArg() {
+			return nil, h.ArgErr()
+		}
+		name = h.Val()
+		if h.NextArg() {
+			return nil, h.ArgErr()
+		}
+	}
+	return caddyhttp.VarsMiddleware{"fs": name}, nil
+}
+
 // parseVars parses the vars directive. See its UnmarshalCaddyfile method for syntax.
 func parseVars(h Helper) (caddyhttp.MiddlewareHandler, error) {
 	v := new(caddyhttp.VarsMiddleware)
@@ -693,6 +729,7 @@ func parseRedir(h Helper) (caddyhttp.MiddlewareHandler, error) {
 `
 		safeTo := html.EscapeString(to)
 		body = fmt.Sprintf(metaRedir, safeTo, safeTo, safeTo, safeTo)
+		hdr = http.Header{"Content-Type": []string{"text/html; charset=utf-8"}}
 		code = "200" // don't redirect non-browser clients
 	default:
 		// Allow placeholders for the code
