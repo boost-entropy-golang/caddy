@@ -7,7 +7,7 @@ require (
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/alecthomas/chroma/v2 v2.13.0
 	github.com/aryann/difflib v0.0.0-20210328193216-ff5ff6dc229b
-	github.com/caddyserver/certmagic v0.20.1-0.20240412214119-167015dd6570
+	github.com/caddyserver/certmagic v0.20.1-0.20240419174353-855d4670a49d
 	github.com/caddyserver/zerossl v0.1.2
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-chi/chi/v5 v5.0.12
@@ -36,6 +36,7 @@ require (
 	go.uber.org/zap v1.27.0
 	go.uber.org/zap/exp v0.2.0
 	golang.org/x/crypto v0.22.0
+	golang.org/x/crypto/x509roots/fallback v0.0.0-20240416174822-0da2a6a1bbc8
 	golang.org/x/net v0.24.0
 	golang.org/x/sync v0.7.0
 	golang.org/x/term v0.19.0
