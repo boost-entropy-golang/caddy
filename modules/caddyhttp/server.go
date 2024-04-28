@@ -272,7 +272,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// advertise HTTP/3, if enabled
 	if s.h3server != nil {
 		if r.ProtoMajor < 3 {
-			err := s.h3server.SetQuicHeaders(w.Header())
+			err := s.h3server.SetQUICHeaders(w.Header())
 			if err != nil {
 				s.logger.Error("setting HTTP/3 Alt-Svc header", zap.Error(err))
 			}
@@ -598,7 +598,7 @@ func (s *Server) serveHTTP3(addr caddy.NetworkAddress, tlsCfg *tls.Config) error
 			TLSConfig:      tlsCfg,
 			MaxHeaderBytes: s.MaxHeaderBytes,
 			// TODO: remove this config when draft versions are no longer supported (we have no need to support drafts)
-			QuicConfig: &quic.Config{
+			QUICConfig: &quic.Config{
 				Versions: []quic.Version{quic.Version1, quic.Version2},
 			},
 			ConnContext: func(ctx context.Context, c quic.Connection) context.Context {
