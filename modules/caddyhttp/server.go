@@ -784,11 +784,14 @@ func (s *Server) logRequest(
 	// wrapping may return multiple loggers, so we log to all of them
 	for _, logger := range loggers {
 		logAtLevel := logger.Info
-		if wrec.Status() >= 400 {
+		if wrec.Status() >= 500 {
 			logAtLevel = logger.Error
 		}
-
-		logAtLevel("handled request", fields...)
+		message := "handled request"
+		if nop, ok := GetVar(r.Context(), "unhandled").(bool); ok && nop {
+			message = "NOP"
+		}
+		logAtLevel(message, fields...)
 	}
 }
 
